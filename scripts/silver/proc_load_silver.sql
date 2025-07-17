@@ -60,11 +60,20 @@ BEGIN
 		PRINT '>> Inserting Data Into: silver.order_products';
 		
 		INSERT INTO silver.order_products (order_id, product_id, add_to_cart_order, reordered)
-		SELECT order_id, product_id, add_to_cart_order, reordered
-		FROM bronze.order_products_prior
-		UNION ALL
-		SELECT order_id, product_id, add_to_cart_order, reordered
-		FROM bronze.order_products_train
+		SELECT TOP 10000
+			op.order_id,
+			op.product_id,
+			op.add_to_cart_order,
+			op.reordered
+		FROM (
+			SELECT order_id, product_id, add_to_cart_order, reordered
+			FROM bronze.order_products_prior
+			UNION ALL
+			SELECT order_id, product_id, add_to_cart_order, reordered
+			FROM bronze.order_products_train
+		) AS op
+		JOIN silver.orders o ON op.order_id = o.order_id
+		ORDER BY o.user_id, op.order_id
 		
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR) + ' seconds';
